@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Record Management</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Arial", sans-serif;
+      }
+
+      body {
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1,
+      h2 {
+        color: #333;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 8px 15px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-right: 10px;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      #cancelBtn {
+        background-color: #f44336;
+      }
+
+      #cancelBtn:hover {
+        background-color: #d32f2f;
+      }
+
+      .controls {
+        margin: 20px 0;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .search-group,
+      .sort-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .sort-group {
+        gap: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+
+      .action-btn {
+        padding: 5px 10px;
+        margin-right: 5px;
+        font-size: 14px;
+      }
+
+      .edit-btn {
+        background-color: #2196f3;
+      }
+
+      .delete-btn {
+        background-color: #f44336;
+      }
+
+      @media (max-width: 768px) {
+        .controls {
+          flex-direction: column;
+        }
+
+        .search-group,
+        .sort-group {
+          width: 100%;
+        }
+
+        .sort-group {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Student Record Management</h1>
+
+      <form id="studentForm">
+        <h2>Add/Edit Student</h2>
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" required />
+        </div>
+        <div class="form-group">
+          <label for="batch">Batch:</label>
+          <input type="text" id="batch" required />
+        </div>
+        <div class="form-group">
+          <label for="age">Age:</label>
+          <input type="number" id="age" min="1" required />
+        </div>
+        <div class="form-group">
+          <label for="score">Score (0-100):</label>
+          <input type="number" id="score" min="0" max="100" required />
+        </div>
+        <button type="submit" id="submitBtn">Add Student</button>
+        <button type="button" id="cancelBtn" style="display: none">
+          Cancel
+        </button>
+      </form>
+
+      <div class="controls">
+        <div class="search-group">
+          <label for="search">Search Students:</label>
+          <input type="text" id="search" placeholder="Search by name..." />
+        </div>
+        <div class="sort-group">
+          <button id="sortAge">Sort by Age (Ascending)</button>
+          <button id="sortScore">Sort by Score (Descending)</button>
+        </div>
+      </div>
+
+      <table id="studentTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Batch</th>
+            <th>Age</th>
+            <th>Score</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentTableBody"></tbody>
+      </table>
+    </div>
+  </body>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const studentForm = document.getElementById("studentForm");
+      const nameInput = document.getElementById("name");
+      const batchInput = document.getElementById("batch");
+      const ageInput = document.getElementById("age");
+      const scoreInput = document.getElementById("score");
+      const submitBtn = document.getElementById("submitBtn");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const searchInput = document.getElementById("search");
+      const sortAgeBtn = document.getElementById("sortAge");
+      const sortScoreBtn = document.getElementById("sortScore");
+      const studentTableBody = document.getElementById("studentTableBody");
+
+      let students = [];
+      let editIndex = null;
+
+      studentForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        const student = {
+          name: nameInput.value.trim(),
+          batch: batchInput.value.trim(),
+          age: parseInt(ageInput.value),
+          score: parseInt(scoreInput.value),
+        };
+
+        if (editIndex !== null) {
+          students[editIndex] = student;
+          editIndex = null;
+          submitBtn.textContent = "Add Student";
+          cancelBtn.style.display = "none";
+        } else {
+          students.push(student);
+        }
+
+        renderStudentTable(students);
+        clearForm();
+      });
+
+      cancelBtn.addEventListener("click", () => {
+        editIndex = null;
+        submitBtn.textContent = "Add Student";
+        cancelBtn.style.display = "none";
+        clearForm();
+      });
+
+      searchInput.addEventListener("input", () => {
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        if (searchTerm === "") {
+          renderStudentTable(students);
+        } else {
+          const filteredStudents = students.filter((student) =>
+            student.name.toLowerCase().includes(searchTerm)
+          );
+          renderStudentTable(filteredStudents);
+        }
+      });
+
+      sortAgeBtn.addEventListener("click", () => {
+        const sortedStudents = [...students].sort((a, b) => a.age - b.age);
+        renderStudentTable(sortedStudents);
+      });
+
+      sortScoreBtn.addEventListener("click", () => {
+        const sortedStudents = [...students].sort((a, b) => b.score - a.score);
+        renderStudentTable(sortedStudents);
+      });
+
+      function renderStudentTable(studentsToRender) {
+        studentTableBody.innerHTML = "";
+
+        studentsToRender.forEach((student, index) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+                <td>${student.name}</td>
+                <td>${student.batch}</td>
+                <td>${student.age}</td>
+                <td>${student.score}</td>
+                <td>
+                    <button class="action-btn edit-btn" data-index="${index}">Edit</button>
+                    <button class="action-btn delete-btn" data-index="${index}">Delete</button>
+                </td>
+            `;
+
+          studentTableBody.appendChild(row);
+        });
+
+        document.querySelectorAll(".edit-btn").forEach((btn) => {
+          btn.addEventListener("click", handleEdit);
+        });
+
+        document.querySelectorAll(".delete-btn").forEach((btn) => {
+          btn.addEventListener("click", handleDelete);
+        });
+      }
+
+      function handleEdit(e) {
+        const index = e.target.getAttribute("data-index");
+        const student = students[index];
+
+        nameInput.value = student.name;
+        batchInput.value = student.batch;
+        ageInput.value = student.age;
+        scoreInput.value = student.score;
+
+        editIndex = index;
+        submitBtn.textContent = "Update Student";
+        cancelBtn.style.display = "inline-block";
+        nameInput.focus();
+      }
+
+      function handleDelete(e) {
+        const index = e.target.getAttribute("data-index");
+        students.splice(index, 1);
+        renderStudentTable(students);
+
+        if (editIndex === index) {
+          editIndex = null;
+          submitBtn.textContent = "Add Student";
+          cancelBtn.style.display = "none";
+          clearForm();
+        }
+      }
+
+      function validateForm() {
+        if (nameInput.value.trim() === "") {
+          alert("Please enter a name");
+          return false;
+        }
+
+        if (batchInput.value.trim() === "") {
+          alert("Please enter a batch");
+          return false;
+        }
+
+        if (ageInput.value === "" || isNaN(ageInput.value)) {
+          alert("Please enter a valid age");
+          return false;
+        }
+
+        if (scoreInput.value === "" || isNaN(scoreInput.value)) {
+          alert("Please enter a valid score");
+          return false;
+        }
+
+        const score = parseInt(scoreInput.value);
+        if (score < 0 || score > 100) {
+          alert("Score must be between 0 and 100");
+          return false;
+        }
+
+        return true;
+      }
+
+      function clearForm() {
+        studentForm.reset();
+      }
+    });
+  </script>
+</html>
+~
